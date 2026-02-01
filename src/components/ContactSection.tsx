@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, 'Nama harus diisi').max(100, 'Nama terlalu panjang'),
@@ -72,16 +73,29 @@ export default function ContactSection() {
 
     setIsSubmitting(true);
 
-    // Simulate sending (replace with actual API call later)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const { data, error } = await supabase.functions.invoke('send-contact-email', {
+        body: formData,
+      });
 
-    toast({
-      title: 'Pesan Terkirim! ✨',
-      description: 'Terima kasih telah menghubungi saya. Saya akan membalas secepatnya.',
-    });
+      if (error) throw error;
 
-    setFormData({ name: '', email: '', subject: '', message: '' });
-    setIsSubmitting(false);
+      toast({
+        title: 'Pesan Terkirim! ✨',
+        description: 'Terima kasih telah menghubungi saya. Saya akan membalas secepatnya.',
+      });
+
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast({
+        title: 'Gagal Mengirim',
+        description: 'Terjadi kesalahan. Silakan coba lagi atau hubungi langsung via email.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
